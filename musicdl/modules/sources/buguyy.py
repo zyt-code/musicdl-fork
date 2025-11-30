@@ -12,7 +12,7 @@ import copy
 from .base import BaseMusicClient
 from urllib.parse import urlencode
 from rich.progress import Progress
-from ..utils import legalizestring, isvalidresp, usesearchheaderscookies, resp2json, safeextractfromdict, AudioLinkTester, WhisperLRC
+from ..utils import legalizestring, isvalidresp, usesearchheaderscookies, resp2json, safeextractfromdict, usedownloadheaderscookies, AudioLinkTester, WhisperLRC, QuarkParser
 
 
 '''BuguyyMusicClient'''
@@ -20,6 +20,7 @@ class BuguyyMusicClient(BaseMusicClient):
     source = 'BuguyyMusicClient'
     def __init__(self, **kwargs):
         super(BuguyyMusicClient, self).__init__(**kwargs)
+        if not self.quark_parser_config.get('cookies'): self.logger_handle.warning(f'{self.source}.__init__ >>> "quark_parser_config" is not configured, so song downloads are restricted and only mp3 files can be downloaded.')
         self.default_search_headers = {
             "accept": "application/json, text/plain, */*",
             "accept-encoding": "gzip, deflate, br, zstd",
@@ -40,6 +41,15 @@ class BuguyyMusicClient(BaseMusicClient):
         }
         self.default_headers = self.default_search_headers
         self._initsession()
+    '''_download'''
+    @usedownloadheaderscookies
+    def _download(self, song_info: dict, request_overrides: dict = None, downloaded_song_infos: list = [], progress: Progress = None, 
+                  song_progress_id: int = 0, songs_progress_id: int = 0):
+        if song_info['use_quark_default_download_headers']:
+            request_overrides['headers'] = self.quark_default_download_headers
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
+        else:
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init
@@ -69,15 +79,34 @@ class BuguyyMusicClient(BaseMusicClient):
                 # --download results
                 if 'id' not in search_result:
                     continue
+                quark_download_urls, parsed_quark_download_url = [search_result.get('downurl', ''), search_result.get('ktmdownurl', '')], ''
+                for quark_download_url in quark_download_urls:
+                    try:
+                        m = re.search(r"WAV#(https?://[^#]+)", quark_download_url)
+                        quark_wav_download_url = m.group(1)
+                        parsed_quark_download_url = QuarkParser.parsefromurl(quark_wav_download_url, **self.quark_parser_config)
+                        break
+                    except:
+                        parsed_quark_download_url = ''
+                        continue
                 resp = self.get(f'https://a.buguyy.top/newapi/geturl2.php?id={search_result["id"]}', **request_overrides)
                 if not isvalidresp(resp=resp): continue
                 download_result = resp2json(resp=resp)
                 download_url = safeextractfromdict(download_result, ['data', 'url'], '')
-                if not download_url: continue
+                if not download_url and not parsed_quark_download_url: continue
                 download_url_status = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).test(download_url, request_overrides)
-                if not download_url_status['ok']: continue
-                download_result_suppl = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
-                if download_result_suppl['ext'] == 'NULL': download_result_suppl['ext'] = download_url.split('.')[-1].split('?')[0] or 'mp3'
+                parsed_quark_download_url_status = AudioLinkTester(headers=self.quark_default_download_headers, cookies=self.default_download_cookies).test(parsed_quark_download_url, request_overrides)
+                if not download_url_status['ok'] and not parsed_quark_download_url_status['ok']: continue
+                if parsed_quark_download_url_status['ok']:
+                    download_url = parsed_quark_download_url
+                    download_url_status = parsed_quark_download_url_status
+                    download_result_suppl = AudioLinkTester(headers=self.quark_default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
+                    if download_result_suppl['ext'] == 'NULL': download_result_suppl['ext'] = 'wav'
+                    use_quark_default_download_headers = True
+                else:
+                    download_result_suppl = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
+                    if download_result_suppl['ext'] == 'NULL': download_result_suppl['ext'] = download_url.split('.')[-1].split('?')[0] or 'mp3'
+                    use_quark_default_download_headers = False
                 download_result['download_result_suppl'] = download_result_suppl
                 # --lyric results
                 lyric = safeextractfromdict(download_result, ['data', 'lrc'], '')
@@ -105,7 +134,7 @@ class BuguyyMusicClient(BaseMusicClient):
                     lyric=lyric, duration=duration, song_name=legalizestring(search_result.get('title', 'NULL'), replace_null_string='NULL'), 
                     singers=legalizestring(search_result.get('singer', 'NULL'), replace_null_string='NULL'), 
                     album=legalizestring(safeextractfromdict(download_result, ['data', 'album'], ''), replace_null_string='NULL'),
-                    identifier=search_result['id'],
+                    identifier=search_result['id'], use_quark_default_download_headers=use_quark_default_download_headers
                 )
                 # --append to song_infos
                 song_infos.append(song_info)

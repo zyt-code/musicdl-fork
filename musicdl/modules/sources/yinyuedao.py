@@ -11,7 +11,7 @@ import json_repair
 from bs4 import BeautifulSoup
 from .base import BaseMusicClient
 from rich.progress import Progress
-from ..utils import legalizestring, isvalidresp, usesearchheaderscookies, AudioLinkTester, WhisperLRC
+from ..utils import legalizestring, isvalidresp, usesearchheaderscookies, usedownloadheaderscookies, AudioLinkTester, WhisperLRC, QuarkParser
 
 
 '''YinyuedaoMusicClient'''
@@ -19,6 +19,7 @@ class YinyuedaoMusicClient(BaseMusicClient):
     source = 'YinyuedaoMusicClient'
     def __init__(self, **kwargs):
         super(YinyuedaoMusicClient, self).__init__(**kwargs)
+        if not self.quark_parser_config.get('cookies'): self.logger_handle.warning(f'{self.source}.__init__ >>> "quark_parser_config" is not configured, so song downloads are restricted and only mp3 files can be downloaded.')
         self.default_search_headers = {
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "accept-encoding": "gzip, deflate, br, zstd",
@@ -40,6 +41,15 @@ class YinyuedaoMusicClient(BaseMusicClient):
         }
         self.default_headers = self.default_search_headers
         self._initsession()
+    '''_download'''
+    @usedownloadheaderscookies
+    def _download(self, song_info: dict, request_overrides: dict = None, downloaded_song_infos: list = [], progress: Progress = None, 
+                  song_progress_id: int = 0, songs_progress_id: int = 0):
+        if song_info['use_quark_default_download_headers']:
+            request_overrides['headers'] = self.quark_default_download_headers
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
+        else:
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init

@@ -11,7 +11,7 @@ import copy
 from .base import BaseMusicClient
 from urllib.parse import urlencode
 from rich.progress import Progress
-from ..utils import legalizestring, resp2json, usesearchheaderscookies, AudioLinkTester, WhisperLRC
+from ..utils import legalizestring, resp2json, usesearchheaderscookies, usedownloadheaderscookies, AudioLinkTester, WhisperLRC, QuarkParser
 
 
 '''MituMusicClient'''
@@ -19,6 +19,7 @@ class MituMusicClient(BaseMusicClient):
     source = 'MituMusicClient'
     def __init__(self, **kwargs):
         super(MituMusicClient, self).__init__(**kwargs)
+        if not self.quark_parser_config.get('cookies'): self.logger_handle.warning(f'{self.source}.__init__ >>> "quark_parser_config" is not configured, so song downloads are restricted and only mp3 files can be downloaded.')
         self.default_search_headers = {
             "accept": "*/*",
             "accept-encoding": "gzip, deflate, br, zstd",
@@ -39,6 +40,15 @@ class MituMusicClient(BaseMusicClient):
         }
         self.default_headers = self.default_search_headers
         self._initsession()
+    '''_download'''
+    @usedownloadheaderscookies
+    def _download(self, song_info: dict, request_overrides: dict = None, downloaded_song_infos: list = [], progress: Progress = None, 
+                  song_progress_id: int = 0, songs_progress_id: int = 0):
+        if song_info['use_quark_default_download_headers']:
+            request_overrides['headers'] = self.quark_default_download_headers
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
+        else:
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init
@@ -69,11 +79,30 @@ class MituMusicClient(BaseMusicClient):
                 if 'rid' not in search_result:
                     continue
                 download_url: str = search_result.get('src')
-                if not download_url: continue
+                quark_download_urls, parsed_quark_download_url = search_result.get('downurl', []), ''
+                for quark_download_url in quark_download_urls:
+                    if 'mp3' in quark_download_url.lower(): continue
+                    try:
+                        quark_wav_download_url = quark_download_url[quark_download_url.index('https://'):]
+                        parsed_quark_download_url = QuarkParser.parsefromurl(quark_wav_download_url, **self.quark_parser_config)
+                        break
+                    except:
+                        parsed_quark_download_url = ''
+                        continue
+                if not download_url and not parsed_quark_download_url: continue
                 download_url_status = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).test(download_url, request_overrides)
-                if not download_url_status['ok']: continue
-                download_result = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
-                if download_result['ext'] == 'NULL': download_result['ext'] = download_url.split('.')[-1].split('?')[0] or 'mp3'
+                parsed_quark_download_url_status = AudioLinkTester(headers=self.quark_default_download_headers, cookies=self.default_download_cookies).test(parsed_quark_download_url, request_overrides)
+                if not download_url_status['ok'] and not parsed_quark_download_url_status['ok']: continue
+                if parsed_quark_download_url_status['ok']:
+                    download_url = parsed_quark_download_url
+                    download_url_status = parsed_quark_download_url_status
+                    download_result = AudioLinkTester(headers=self.quark_default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
+                    if download_result['ext'] == 'NULL': download_result['ext'] = 'wav'
+                    use_quark_default_download_headers = True
+                else:
+                    download_result = AudioLinkTester(headers=self.default_download_headers, cookies=self.default_download_cookies).probe(download_url, request_overrides)
+                    if download_result['ext'] == 'NULL': download_result['ext'] = download_url.split('.')[-1].split('?')[0] or 'mp3'
+                    use_quark_default_download_headers = False
                 # --lyric results
                 try:
                     if os.environ.get('ENABLE_WHISPERLRC', 'False').lower() == 'true':
@@ -91,6 +120,7 @@ class MituMusicClient(BaseMusicClient):
                     download_url_status=download_url_status, download_url=download_url, ext=download_result['ext'], file_size=download_result['file_size'], 
                     lyric=lyric, duration='-:-:-', song_name=legalizestring(search_result.get('name', 'NULL'), replace_null_string='NULL'), 
                     singers=legalizestring(search_result.get('artist', 'NULL'), replace_null_string='NULL'), album='NULL', identifier=search_result['rid'],
+                    use_quark_default_download_headers=use_quark_default_download_headers,
                 )
                 # --append to song_infos
                 song_infos.append(song_info)

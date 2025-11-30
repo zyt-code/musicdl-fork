@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from .base import BaseMusicClient
 from rich.progress import Progress
-from ..utils import legalizestring, resp2json, isvalidresp, usesearchheaderscookies, safeextractfromdict, AudioLinkTester
+from ..utils import legalizestring, resp2json, isvalidresp, usesearchheaderscookies, safeextractfromdict, usedownloadheaderscookies, AudioLinkTester, QuarkParser
 
 
 '''GequbaoMusicClient'''
@@ -20,6 +20,7 @@ class GequbaoMusicClient(BaseMusicClient):
     source = 'GequbaoMusicClient'
     def __init__(self, **kwargs):
         super(GequbaoMusicClient, self).__init__(**kwargs)
+        if not self.quark_parser_config.get('cookies'): self.logger_handle.warning(f'{self.source}.__init__ >>> "quark_parser_config" is not configured, so song downloads are restricted and only mp3 files can be downloaded.')
         self.default_search_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
         }
@@ -28,6 +29,15 @@ class GequbaoMusicClient(BaseMusicClient):
         }
         self.default_headers = self.default_search_headers
         self._initsession()
+    '''_download'''
+    @usedownloadheaderscookies
+    def _download(self, song_info: dict, request_overrides: dict = None, downloaded_song_infos: list = [], progress: Progress = None, 
+                  song_progress_id: int = 0, songs_progress_id: int = 0):
+        if song_info['use_quark_default_download_headers']:
+            request_overrides['headers'] = self.quark_default_download_headers
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
+        else:
+            return super()._download(song_info=song_info, request_overrides=request_overrides, downloaded_song_infos=downloaded_song_infos, progress=progress, song_progress_id=song_progress_id, songs_progress_id=songs_progress_id)
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init

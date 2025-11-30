@@ -28,6 +28,7 @@ A unified interface encapsulated for all supported music platforms. Arguments su
       "type": music_source,
       "search_size_per_page": 10,
       "strict_limit_search_size_per_page": True,
+      "quark_parser_config": {},
   }
   ```
   Any keys you provide will overwrite the defaults for that specific source only.
@@ -169,6 +170,13 @@ Arguments supported when initializing this class include:
   Some sites do not allow `search_size_per_page` to control how many songs are returned per request, 
   which may cause the final number of search results from that site to exceed `search_size_per_source`. 
   Setting this parameter to `True` enforces that the total number of results is less than or equal to `search_size_per_source`.
+
+- **quark_parser_config** (`dict` or `None`, default `{}`):  
+  Some sites, such as `MituMusicClient`, `GequbaoMusicClient`, `YinyuedaoMusicClient`, and `BuguyyMusicClient`, 
+  store their lossless audio files on [Quark Netdisk](https://pan.quark.cn/). 
+  For these websites, if you want to download lossless-quality music files using `musicdl`, 
+  you need to configure `quark_parser_config` with the `cookies` from your Quark Netdisk web session after logging in, *e.g.*,
+  `quark_parser_config={'cookies': xxxxxx}`.
 
 #### `BaseMusicClient.search(keyword: str, num_threadings=5, request_overrides=None, rule=None)`
 
