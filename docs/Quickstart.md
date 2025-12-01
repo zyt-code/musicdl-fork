@@ -325,4 +325,20 @@ If the cookies you supply belong to a non-VIP Quark account, the download speed 
 
 #### Apple Music Download
 
-Support for `AppleMusicClient` is currently incomplete, so even users with an Apple Music subscription cannot yet use musicdl to download full high-quality source audio files.
+`AppleMusicClient` works similarly to `TIDALMusicClient`: 
+if you are not an Apple Music subscriber or you have not manually set in musicdl the cookies (*i.e.*, the `media-user-token`) from your logged-in Apple Music session in the browser, 
+you will only be able to download a partial segment of each track (usually 30–90 seconds). 
+
+If you need to download the full audio and lyrics for each song, you can configure musicdl as follows:
+
+```python
+from musicdl import musicdl
+
+cookies = {'media-user-token': xxx}
+init_music_clients_cfg = {'AppleMusicClient': {'default_search_cookies': cookies, 'default_download_cookies': cookies, 'search_size_per_source': 10}
+music_client = musicdl.MusicClient(music_sources=['AppleMusicClient'], init_music_clients_cfg=init_music_clients_cfg)
+music_client.startcmdui()
+```
+
+It is important to note that to download Apple Music audio files (including decryption) using musicdl, you must properly install [GPAC](https://gpac.io/downloads/gpac-nightly-builds/),
+[Bento4](https://www.bento4.com/downloads/) and [N_m3u8DL-RE](https://github.com/nilaoda/N_m3u8DL-RE).
