@@ -16,6 +16,7 @@ from urllib.parse import quote
 from .base import BaseMusicClient
 from urllib.parse import urlencode
 from rich.progress import Progress
+from typing import List, Dict, Any, Optional
 from ..utils import legalizestring, usesearchheaderscookies, usedownloadheaderscookies, touchdir, resp2json, SongInfo, MusicInfoUtils
 
 
@@ -71,46 +72,80 @@ class MP3JuiceMusicClient(BaseMusicClient):
             progress.update(song_progress_id, description=f"{self.source}.download >>> {song_info.song_name} (Error: {err})")
         return downloaded_song_infos
     '''_decodebin'''
-    def _decodebin(self, bin_str: str):
+    def _decodebin(self, bin_str: str) -> List[int]:
         return [int(b, 2) for b in bin_str.split() if b]
     '''_decodehex'''
-    def _decodehex(self, hex_str: str):
-        bytes_tokens = re.findall(r'0x[0-9a-fA-F]{2}', hex_str)
-        return ''.join(chr(int(h, 16)) for h in bytes_tokens)
+    def _decodehex(self, hex_str: str) -> bytes:
+        tokens = re.findall(r'0x[0-9a-fA-F]{2}', hex_str)
+        return bytes(int(h, 16) for h in tokens)
     '''_authorization'''
-    def _authorization(self, gc: dict) -> str:
+    def _authorization(self, gc: Dict[str, Any]) -> str:
         bin_str, secret_b64 = gc["Ffw"]
         flag_reverse, offset, max_len, case_mode = gc["LUy"]
         hex_str = gc["Ixn"][0]
-        secret = base64.b64decode(secret_b64).decode("utf-8", errors="ignore")
-        if flag_reverse > 0: secret = secret[::-1]
+        secret_bytes: bytes = base64.b64decode(secret_b64)
+        if flag_reverse > 0: secret_bytes = secret_bytes[::-1]
         idx_list = self._decodebin(bin_str)
-        t = "".join(secret[i - offset] for i in idx_list)
+        t: bytes = bytes(secret_bytes[i - offset] for i in idx_list)
         if max_len > 0: t = t[:max_len]
-        if case_mode == 1: t = t.lower()
-        elif case_mode == 2: t = t.upper()
-        suffix = self._decodehex(hex_str)
-        raw = f"{t}_{suffix}"
-        return base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        if case_mode == 1: t = t.decode("latin1").lower().encode("latin1")
+        elif case_mode == 2: t = t.decode("latin1").upper().encode("latin1")
+        suffix: bytes = self._decodehex(hex_str)
+        raw: bytes = t + b"_" + suffix
+        return base64.b64encode(raw).decode("ascii")
+    '''_extractgcfromhtml'''
+    def _extractgcfromhtml(self, html: str) -> Dict[str, Any]:
+        soup = BeautifulSoup(html, "html.parser")
+        gc = self._tryextractgcnewstyle(soup)
+        if gc is not None: return gc
+        gc = self._tryextractgcoldstyle(soup)
+        if gc is not None: return gc
+        raise RuntimeError("Failed to extract gc config from HTML")
+    '''_tryextractgcnewstyle'''
+    def _tryextractgcnewstyle(self, soup) -> Optional[Dict[str, Any]]:
+        for script in soup.find_all("script"):
+            text = (script.string or script.get_text() or "").strip()
+            if "Object.defineProperty(gC" not in text: continue
+            for m in re.finditer(r"var\s+(\w+)\s*=\s*(\{.*?});", text, flags=re.S):
+                obj_literal = m.group(2)
+                try: y_dict = json.loads(obj_literal)
+                except json.JSONDecodeError: continue
+                gc = self._mapylikedicttogc(y_dict)
+                if gc is not None: return gc
+        return None
+    '''_tryextractgcoldstyle'''
+    def _tryextractgcoldstyle(self, soup) -> Dict[str, Any] | None:
+        for script in soup.find_all("script"):
+            text = script.string or ""
+            if "var gC" not in text or "dfU" not in text: continue
+            m = re.search(r"var\s+j\s*=\s*(\{.*?});", text, flags=re.S)
+            if not m: continue
+            j_obj_str = m.group(1)
+            try: j_dict = json.loads(j_obj_str)
+            except json.JSONDecodeError: continue
+            key_names = [base64.b64decode(x).decode("utf-8") for x in j_dict["dfU"]]
+            sub = {name: j_dict[name] for name in key_names}
+            gc = self._mapylikedicttogc(sub)
+            if gc is not None: return gc
+        return None
+    '''_mapylikedicttogc'''
+    def _mapylikedicttogc(self, d: Dict[str, Any]) -> Dict[str, Any] | None:
+        f_key = l_key = i_key = None
+        for k, v in d.items():
+            if not isinstance(v, list): continue
+            if len(v) == 4 and all(isinstance(x, int) for x in v): l_key = k; continue
+            if len(v) == 2 and isinstance(v[0], str):
+                if re.fullmatch(r"[01 ]+", v[0]): f_key = k; continue
+                if re.search(r"0x[0-9a-fA-F]{2}", v[0]): i_key = k; continue
+        if f_key and l_key and i_key: return {"Ffw": d[f_key], "LUy": d[l_key], "Ixn": d[i_key]}
+        return None
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init
         rule, request_overrides = rule or {}, request_overrides or {}
         resp = self.get('https://mp3juice.co/', **request_overrides)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        gc_script_text = None
-        for script in soup.find_all("script"):
-            text = script.string or ""
-            if "var gC" in text and "dfU" in text:
-                gc_script_text = text; break
-        if not gc_script_text: raise RuntimeError('gC script not found in HTML')
-        m = re.search(r"var\s+j\s*=\s*(\{.*?});", gc_script_text, flags=re.S)
-        if not m: raise RuntimeError("j object not found in gC script")
-        j_obj_str = m.group(1)
-        j_dict = json.loads(j_obj_str)
-        key_names = [base64.b64decode(x).decode("utf-8") for x in j_dict["dfU"]]
-        gc = {name: j_dict[name] for name in key_names}
+        gc = self._extractgcfromhtml(resp.text)
         auth_code = self._authorization(gc=gc)
         # search rules
         default_rule = {'a': auth_code, 'y': 's', 'q': keyword, 't': str(int(time.time()))}
