@@ -139,6 +139,11 @@ class MP3JuiceMusicClient(BaseMusicClient):
                 if re.search(r"0x[0-9a-fA-F]{2}", v[0]): i_key = k; continue
         if f_key and l_key and i_key: return {"Ffw": d[f_key], "LUy": d[l_key], "Ixn": d[i_key]}
         return None
+    '''_getinitparamname'''
+    def _getinitparamname(self, gc: dict) -> str:
+        hex_param = gc["Ixn"][1]
+        name_bytes = self._decodehex(hex_param)
+        return name_bytes.decode("latin1")
     '''_constructsearchurls'''
     def _constructsearchurls(self, keyword: str, rule: dict = None, request_overrides: dict = None):
         # init
@@ -147,6 +152,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
         resp.raise_for_status()
         gc = self._extractgcfromhtml(resp.text)
         auth_code = self._authorization(gc=gc)
+        init_param_name = self._getinitparamname(gc)
         # search rules
         default_rule = {'a': auth_code, 'y': 's', 'q': keyword, 't': str(int(time.time()))}
         default_rule.update(rule)
@@ -154,7 +160,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
         # construct search urls based on search rules
         base_url = 'https://mp3juice.co/api/v1/search?'
         page_rule = copy.deepcopy(default_rule)
-        search_urls = [{'search_url': base_url + urlencode(page_rule), 'auth_code': auth_code}]
+        search_urls = [{'search_url': base_url + urlencode(page_rule), 'auth_code': auth_code, 'init_param_name': init_param_name}]
         self.search_size_per_page = self.search_size_per_source
         # return
         return search_urls
@@ -163,7 +169,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
     def _search(self, keyword: str = '', search_url: dict = None, request_overrides: dict = None, song_infos: list = [], progress: Progress = None, progress_id: int = 0):
         # init
         request_overrides, search_meta = request_overrides or {}, copy.deepcopy(search_url)
-        search_url, auth_code = search_meta['search_url'], search_meta['auth_code']
+        search_url, auth_code, init_param_name = search_meta['search_url'], search_meta['auth_code'], search_meta['init_param_name']
         # successful
         try:
             # --search results
@@ -177,7 +183,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
                     continue
                 song_info, download_result = SongInfo(source=self.source), dict()
                 # ----init
-                params = {'o': auth_code, 't': str(int(time.time()))}
+                params = {init_param_name: auth_code, 't': str(int(time.time()))}
                 try:
                     resp = self.get('https://www1.eooc.cc/api/v1/init?', params=params, **request_overrides)
                     resp.raise_for_status()
