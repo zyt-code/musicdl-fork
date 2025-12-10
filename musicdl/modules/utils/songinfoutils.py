@@ -1,6 +1,6 @@
 '''
 Function:
-    Implementation of MusicInfoUtils
+    Implementation of SongInfoUtils
 Author:
     Zhenchao Jin
 WeChat Official Account (微信公众号):
@@ -15,8 +15,8 @@ from .logger import LoggerHandle
 from .misc import seconds2hms, byte2mb
 
 
-'''MusicInfoUtils'''
-class MusicInfoUtils:
+'''SongInfoUtils'''
+class SongInfoUtils:
     '''fillsongtechinfo'''
     @staticmethod
     def fillsongtechinfo(song_info: SongInfo, logger_handle: LoggerHandle, disable_print: bool) -> SongInfo:
@@ -29,7 +29,7 @@ class MusicInfoUtils:
         try:
             tag = TinyTag.get(str(path))
         except Exception as err:
-            logger_handle.warning(f'MusicInfoUtils.fillsongtechinfo >>> {str(path)} (Err: {err})', disable_print=disable_print)
+            logger_handle.warning(f'SongInfoUtils.fillsongtechinfo >>> {str(path)} (Err: {err})', disable_print=disable_print)
             return song_info
         if tag.duration:
             song_info.duration_s = int(round(tag.duration))
