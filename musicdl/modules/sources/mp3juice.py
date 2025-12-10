@@ -161,7 +161,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
         # construct search urls based on search rules
         base_url = 'https://mp3juice.co/api/v1/search?'
         page_rule = copy.deepcopy(default_rule)
-        search_urls = [{'search_url': base_url + urlencode(page_rule), 'auth_code': auth_code, 'init_param_name': init_param_name}]
+        search_urls = [{'url': base_url + urlencode(page_rule), 'auth_code': auth_code, 'init_param_name': init_param_name}]
         self.search_size_per_page = self.search_size_per_source
         # return
         return search_urls
@@ -170,7 +170,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
     def _search(self, keyword: str = '', search_url: dict = None, request_overrides: dict = None, song_infos: list = [], progress: Progress = None, progress_id: int = 0):
         # init
         request_overrides, search_meta = request_overrides or {}, copy.deepcopy(search_url)
-        search_url, auth_code, init_param_name = search_meta['search_url'], search_meta['auth_code'], search_meta['init_param_name']
+        search_url, auth_code, init_param_name = search_meta['url'], search_meta['auth_code'], search_meta['init_param_name']
         # successful
         try:
             # --search results
