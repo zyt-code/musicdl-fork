@@ -133,7 +133,7 @@ class GequbaoMusicClient(BaseMusicClient):
                 song_info.update(dict(
                     lyric=lyric, duration=duration, song_name=legalizestring(download_result.get('mp3_title', 'NULL'), replace_null_string='NULL'),
                     singers=legalizestring(download_result.get('mp3_author', 'NULL'), replace_null_string='NULL'), album='NULL',
-                    identifier=download_result.get('play_id') or song_info.download_url,
+                    identifier=download_result.get('play_id'),
                 ))
                 # --append to song_infos
                 song_infos.append(song_info)

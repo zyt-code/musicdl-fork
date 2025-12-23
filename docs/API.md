@@ -122,6 +122,7 @@ Thread settings and request overrides are automatically taken from `MusicClient.
 - `musicdl.modules.sources.fangpi.FangpiMusicClient`
 - `musicdl.modules.sources.jamendo.JamendoMusicClient`
 - `musicdl.modules.sources.bilibili.BilibiliMusicClient`
+- `musicdl.modules.sources.gequhai.GequhaiMusicClient`
 - `musicdl.modules.common.GDStudioMusicClient`
 - `musicdl.modules.common.TuneHubMusicClient`
 

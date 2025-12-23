@@ -93,7 +93,7 @@ class XimalayaMusicClient(BaseMusicClient):
                 default_rule = {'msg': keyword, 'n': '', 'num': self.search_size_per_source, 'type': 'json'}
                 default_rule.update(rule)
                 # --construct search urls based on search rules
-                for base_url in ['https://api-v1.cenguigui.cn/api/music/dg_ximalayamusic.php?', 'https://api.cenguigui.cn/api/music/dg_ximalayamusic.php?']:
+                for base_url in ['https://api-v1.cenguigui.cn/api/music/dg_ximalayamusic.php?', 'https://api.cenguigui.cn/api/music/dg_ximalayamusic.php?', 'https://player.cenguigui.cn/api/music/dg_ximalayamusic.php?']:
                     page_rule = copy.deepcopy(default_rule)
                     page_rule['num'] = self.search_size_per_source
                     search_urls = [base_url + urlencode(page_rule)]
@@ -120,12 +120,13 @@ class XimalayaMusicClient(BaseMusicClient):
             song_info = SongInfo(source=self.source)
             params = {'msg': keyword, 'n': search_result['n'], 'num': self.search_size_per_source, 'type': 'json'}
             try:
-                try:
-                    resp = self.get('https://api-v1.cenguigui.cn/api/music/dg_ximalayamusic.php', params=params, timeout=10, **request_overrides)
-                    resp.raise_for_status()
-                except:
-                    resp = self.get('https://api.cenguigui.cn/api/music/dg_ximalayamusic.php', params=params, timeout=10, **request_overrides)
-                    resp.raise_for_status()
+                for prefix in ['api-v1', 'api', 'player']:
+                    try:
+                        resp = self.get(f'https://{prefix}.cenguigui.cn/api/music/dg_ximalayamusic.php', params=params, timeout=10, **request_overrides)
+                        resp.raise_for_status()
+                        break
+                    except:
+                        continue
                 download_result = resp2json(resp)
                 download_url: str = download_result.get('url', '')
                 if not download_url: continue
@@ -243,7 +244,7 @@ class XimalayaMusicClient(BaseMusicClient):
             parsed_search_url = urlparse(search_url)
             if parsed_search_url.hostname in ['music-api.gdstudio.xyz']:
                 self._parsegdstudioapi(search_results, song_infos=song_infos, request_overrides=request_overrides)
-            elif parsed_search_url.hostname in ['api-v1.cenguigui.cn', 'api.cenguigui.cn']:
+            elif parsed_search_url.hostname in ['api-v1.cenguigui.cn', 'api.cenguigui.cn', 'player.cenguigui.cn']:
                 self._parsecggapi(keyword, search_results, song_infos=song_infos, request_overrides=request_overrides)
             else:
                 self._parseofficialapi(search_results, song_infos=song_infos, request_overrides=request_overrides)
