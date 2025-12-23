@@ -112,6 +112,19 @@ class GequhaiMusicClient(BaseMusicClient):
                 # ----parse from quark links
                 if self.quark_parser_config.get('cookies'):
                     quark_download_url = download_result.get('mp3_extra_url_decoded', '')
+                    try:
+                        download_result['quark_parse_result'], download_url = QuarkParser.parsefromdirurl(quark_download_url, **self.quark_parser_config)
+                        if not download_url: raise
+                        download_url_status = self.quark_audio_link_tester.test(download_url, request_overrides)
+                        download_url_status['probe_status'] = self.quark_audio_link_tester.probe(download_url, request_overrides)
+                        ext = download_url_status['probe_status']['ext']
+                        if ext == 'NULL': ext = 'mp3'
+                        song_info = SongInfo(
+                            source=self.source, download_url=download_url, download_url_status=download_url_status, raw_data={'search': search_result, 'download': download_result},
+                            default_download_headers=self.quark_default_download_headers, ext=ext, file_size=download_url_status['probe_status']['file_size']
+                        )
+                    except:
+                        song_info = SongInfo(source=self.source)
                 # ----parse from play url
                 if not song_info.with_valid_download_url:
                     if 'play_id' not in download_result or not download_result['play_id']: continue
