@@ -27,32 +27,34 @@ class MP3JuiceMusicClient(BaseMusicClient):
     def __init__(self, **kwargs):
         super(MP3JuiceMusicClient, self).__init__(**kwargs)
         self.default_search_headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
             "accept": "*/*",
             "accept-encoding": "gzip, deflate, br, zstd",
             "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+            "origin": "https://mp3juice.as",
             "priority": "u=1, i",
-            "referer": "https://mp3juice.co/",
-            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "referer": "https://mp3juice.as/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "\"Windows\"",
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
+            "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
         }
         self.default_download_headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
             "accept": "*/*",
             "accept-encoding": "gzip, deflate, br, zstd",
             "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+            "origin": "https://mp3juice.as",
             "priority": "u=1, i",
-            "referer": "https://mp3juice.co/",
-            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "referer": "https://mp3juice.as/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "\"Windows\"",
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
+            "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
         }
         self.default_headers = self.default_search_headers
         self._initsession()
@@ -159,7 +161,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
         default_rule.update(rule)
         default_rule['q'] = base64.b64encode(quote(keyword, safe="").encode("utf-8")).decode("utf-8")
         # construct search urls based on search rules
-        base_url = 'https://mp3juice.co/api/v1/search?'
+        base_url = 'https://mp3juice.as/api/v1/search?'
         page_rule = copy.deepcopy(default_rule)
         search_urls = [{'url': base_url + urlencode(page_rule), 'auth_code': auth_code, 'init_param_name': init_param_name}]
         self.search_size_per_page = self.search_size_per_source
@@ -202,7 +204,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
                 # ----if in sound cloud, can be directly accessed
                 if search_result['root_source'] in ['SoundCloud']:
                     try:
-                        download_url = f"https://eooc.cc/s/{search_result['id_base64']}/{search_result['title_base64']}/"
+                        download_url = f"https://thetacloud.org/s/{search_result['id_base64']}/{search_result['title_base64']}/"
                         download_url_status = self.audio_link_tester.test(download_url, request_overrides)
                         song_info.update(dict(
                             download_url=download_url, download_url_status=download_url_status, raw_data={'search': search_result, 'download': {}}, ext='mp3', 
@@ -217,7 +219,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
                 # ----init
                 params = {init_param_name: auth_code, 't': str(int(time.time()))}
                 try:
-                    resp = self.get('https://www1.eooc.cc/api/v1/init?', params=params, **request_overrides)
+                    resp = self.get('https://theta.thetacloud.org/api/v1/init?', params=params, **request_overrides)
                     resp.raise_for_status()
                     download_result['init'] = resp2json(resp=resp)
                     convert_url = download_result['init'].get('convertURL', '')
