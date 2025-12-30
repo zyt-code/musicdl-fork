@@ -13,10 +13,10 @@ import time
 import base64
 from bs4 import BeautifulSoup
 from urllib.parse import quote
-from .base import BaseMusicClient
 from itertools import zip_longest
 from urllib.parse import urlencode
 from rich.progress import Progress
+from ..sources import BaseMusicClient
 from typing import List, Dict, Any, Optional
 from ..utils import legalizestring, usesearchheaderscookies, usedownloadheaderscookies, touchdir, resp2json, byte2mb, SongInfo, SongInfoUtils
 
@@ -25,35 +25,20 @@ from ..utils import legalizestring, usesearchheaderscookies, usedownloadheadersc
 class MP3JuiceMusicClient(BaseMusicClient):
     source = 'MP3JuiceMusicClient'
     def __init__(self, **kwargs):
+        kwargs['search_size_per_source'] = kwargs['search_size_per_source'] * 2
         super(MP3JuiceMusicClient, self).__init__(**kwargs)
         self.default_search_headers = {
-            "accept": "*/*",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-            "origin": "https://mp3juice.as",
-            "priority": "u=1, i",
-            "referer": "https://mp3juice.as/",
+            "accept": "*/*", "accept-encoding": "gzip, deflate, br, zstd", "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+            "origin": "https://mp3juice.as", "priority": "u=1, i", "referer": "https://mp3juice.as/",
             "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
+            "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "cross-site",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
         }
         self.default_download_headers = {
-            "accept": "*/*",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-            "origin": "https://mp3juice.as",
-            "priority": "u=1, i",
-            "referer": "https://mp3juice.as/",
+            "accept": "*/*", "accept-encoding": "gzip, deflate, br, zstd", "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+            "origin": "https://mp3juice.as", "priority": "u=1, i", "referer": "https://mp3juice.as/",
             "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
+            "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "cross-site",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
         }
         self.default_headers = self.default_search_headers
@@ -66,8 +51,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
             touchdir(song_info.work_dir)
             total_size = song_info.downloaded_contents.__sizeof__()
             progress.update(song_progress_id, total=total_size)
-            with open(song_info.save_path, "wb") as fp:
-                fp.write(song_info.downloaded_contents)
+            with open(song_info.save_path, "wb") as fp: fp.write(song_info.downloaded_contents)
             progress.advance(song_progress_id, total_size)
             progress.update(song_progress_id, description=f"{self.source}.download >>> {song_info.song_name} (Success)")
             downloaded_song_infos.append(SongInfoUtils.fillsongtechinfo(copy.deepcopy(song_info), logger_handle=self.logger_handle, disable_print=self.disable_print))
@@ -105,7 +89,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
         if gc is not None: return gc
         raise RuntimeError("Failed to extract gc config from HTML")
     '''_tryextractgcnewstyle'''
-    def _tryextractgcnewstyle(self, soup) -> Optional[Dict[str, Any]]:
+    def _tryextractgcnewstyle(self, soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
         for script in soup.find_all("script"):
             text = (script.string or script.get_text() or "").strip()
             if "Object.defineProperty(gC" not in text: continue
@@ -117,7 +101,7 @@ class MP3JuiceMusicClient(BaseMusicClient):
                 if gc is not None: return gc
         return None
     '''_tryextractgcoldstyle'''
-    def _tryextractgcoldstyle(self, soup) -> Dict[str, Any] | None:
+    def _tryextractgcoldstyle(self, soup: BeautifulSoup) -> Dict[str, Any] | None:
         for script in soup.find_all("script"):
             text = script.string or ""
             if "var gC" not in text or "dfU" not in text: continue

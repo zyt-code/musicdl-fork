@@ -107,6 +107,7 @@ Thread settings and request overrides are automatically taken from `MusicClient.
 - `musicdl.modules.sources.FangpiMusicClient`
 - `musicdl.modules.sources.FiveSingMusicClient`
 - `musicdl.modules.sources.FiveSongMusicClient`
+- `musicdl.modules.sources.FLMP3MusicClient`
 - `musicdl.modules.sources.GequbaoMusicClient`
 - `musicdl.modules.sources.GequhaiMusicClient`
 - `musicdl.modules.sources.HTQYYMusicClient`
@@ -117,7 +118,6 @@ Thread settings and request overrides are automatically taken from `MusicClient.
 - `musicdl.modules.sources.LizhiMusicClient`
 - `musicdl.modules.sources.MiguMusicClient`
 - `musicdl.modules.sources.MissEvanMusicClient`
-- `musicdl.modules.sources.MP3JuiceMusicClient`
 - `musicdl.modules.sources.MituMusicClient`
 - `musicdl.modules.sources.NeteaseMusicClient`
 - `musicdl.modules.sources.QianqianMusicClient`
@@ -127,6 +127,7 @@ Thread settings and request overrides are automatically taken from `MusicClient.
 - `musicdl.modules.sources.YinyuedaoMusicClient`
 - `musicdl.modules.sources.YouTubeMusicClient`
 - `musicdl.modules.common.GDStudioMusicClient`
+- `musicdl.modules.common.MP3JuiceMusicClient`
 - `musicdl.modules.common.TuneHubMusicClient`
 
 End users usually **do not** instantiate `BaseMusicClient` directly, but instead use one of the specific clients above.
