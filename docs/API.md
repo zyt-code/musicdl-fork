@@ -116,6 +116,7 @@ Thread settings and request overrides are automatically taken from `MusicClient.
 - `musicdl.modules.sources.JCPOOMusicClient`
 - `musicdl.modules.sources.KugouMusicClient`
 - `musicdl.modules.sources.KuwoMusicClient`
+- `musicdl.modules.sources.KKWSMusicClient`
 - `musicdl.modules.sources.LizhiMusicClient`
 - `musicdl.modules.sources.MiguMusicClient`
 - `musicdl.modules.sources.MissEvanMusicClient`

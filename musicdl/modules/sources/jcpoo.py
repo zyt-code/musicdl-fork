@@ -89,6 +89,7 @@ class JCPOOMusicClient(BaseMusicClient):
                 key, url = m.group("key"), m.group("url").strip()
                 if not url: continue
                 fmt = key[:-4] if key.endswith("_url") else key
+                for k in FORMAT_RANK.keys(): fmt = k if k.lower() in fmt.lower() else fmt
                 out.append({"key": key, "format": fmt, "url": url})
             return out
         soup, outs = BeautifulSoup(html_text, "lxml"), []
@@ -101,7 +102,7 @@ class JCPOOMusicClient(BaseMusicClient):
             if it["url"] in seen: continue
             seen.add(it["url"])
             uniq.append(it)
-        uniq = sorted(uniq, key=lambda x: FORMAT_RANK.get(x["format"].upper()), reverse=True)
+        uniq = sorted(uniq, key=lambda x: FORMAT_RANK.get(x["format"].upper(), 0), reverse=True)
         return {'quark_links': uniq}
     '''_extractlrc'''
     def _extractlrc(self, js_text: str):
