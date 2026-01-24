@@ -17,6 +17,8 @@ A unified interface encapsulated for all supported music platforms. Arguments su
       "search_size_per_source": 5,
       "auto_set_proxies": False,
       "random_update_ua": False,
+      "enable_search_curl_cffi": False,
+      "enable_download_curl_cffi": False,
       "max_retries": 3,
       "maintain_session": False,
       "logger_handle": LoggerHandle(),
@@ -153,6 +155,12 @@ Arguments supported when initializing this class include:
 
 - **random_update_ua** (`bool`, default `False`):  
   If `True`, randomly refresh the `User-Agent` header on each request.
+
+- **enable_search_curl_cffi** (`bool`, default `False`):  
+  If `True`, `curl_cffi.requests.Session` is used for each search request.
+
+- **enable_download_curl_cffi** (`bool`, default `False`):  
+  If `True`, `curl_cffi.requests.Session` is used for each download request.
 
 - **max_retries** (`int`, default `3`):  
   Maximum number of retry attempts for each HTTP request in `BaseMusicClient.get()` / `BaseMusicClient.post()`.
