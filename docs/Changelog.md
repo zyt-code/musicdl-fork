@@ -1,6 +1,6 @@
 # Release Log
 
-- 2026-01-28: Released musicdl v2.8.9 — add auto-tagging, integrate shared premium APIs for specific platforms, and hotfix TuneHub.
+- 2026-01-28: Released musicdl v2.8.9 — add an automatic song tag autofill feature, introduce shared membership APIs for additional platforms, and deploy a TuneHub hotfix.
 
 - 2026-01-26: Released musicdl v2.8.8 — added a new lossless music search and download site, implemented a Lanzou Cloud direct-download link parser, and performed partial code optimizations.
 
