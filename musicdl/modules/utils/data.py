@@ -59,9 +59,9 @@ class SongInfo:
     @property
     def save_path(self) -> str:
         if self._save_path is not None: return self._save_path
-        sp, same_name_file_idx = os.path.join(self.work_dir, f"{self.song_name} - {self.identifier}.{self.ext.removeprefix('.')}"), 1
+        sp, same_name_file_idx = os.path.join(self.work_dir, f"{self.song_name}.{self.ext.removeprefix('.')}"), 1
         while os.path.exists(sp):
-            sp = os.path.join(self.work_dir, f"{self.song_name} - {self.identifier} ({same_name_file_idx}).{self.ext.removeprefix('.')}")
+            sp = os.path.join(self.work_dir, f"{self.song_name} ({same_name_file_idx}).{self.ext.removeprefix('.')}")
             same_name_file_idx += 1
         sp = sanitize_filepath(sp)
         self._save_path = sp
