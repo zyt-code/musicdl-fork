@@ -103,4 +103,11 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# Claude Code
+.claude/
+AGENTS.md
+musicdl/AGENTS.md
+musicdl/modules/AGENTS.md
+musicdl/modules/sources/AGENTS.md
+
 
